@@ -1,0 +1,249 @@
+openapi: 3.0.0
+# Added by API Auto Mocking Plugin
+servers:
+# Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/ryanhapa/Orders/1.0.0
+  - url: https://api.divvy.systems/v1
+    description: Alexanders Print Advantage Order Management
+  - url: https://dev.divvy.systems/v1
+    description: Development
+info:
+  title: APA Order Management
+  description: This API provides integration between customer application and Alexander's Print Advantage, for the purpose of fulfilling orders.
+  version: "1.0.0"
+  contact:
+    email: dev@alexanders.com
+tags:
+  - name: order
+    description: placing/changing orders
+security:
+  - ApiKeyAuthHeader: []
+paths:
+  /order:
+    post:
+      tags:
+        - order
+      summary: "Places new order for fulfillment"
+      description: "Use the order endpoint for placing new orders. Include at least one of either photobookItems or items, both aren't required, but allowed if placing an order for both types."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+      responses:
+        '200':
+         description: OK
+        '400':
+          description: Bad Request (data invalid)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        '401':
+          $ref: "#/components/responses/UnauthorizedError"
+      externalDocs:
+        description: See other json examples for orders ( I figure we can create a link to some samples, photobook only, standard item only, and mix of both. OpenAPI 3.0 supports multiple examples, but the tools don't display them as of yet. )
+        url: http://bobloblaw.com/examples/order/cancel/{integrationKey1}
+  /order/{integrationKey1}:
+    delete:
+      summary: Cancel Order
+      description: Attempt to cancel an order using the integrationKey1 sent in the order request.  If an order has not yet entered production, it will be canceled.  If the order has started production it will be marked canceledBillable - in this case you will be billed for the product, but it will not incur shipping costs.
+      parameters:
+        - name: integrationKey1
+          in: path
+          required: true
+          description: key sent in original request
+          schema:
+            type: string
+      tags:
+        - order
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  newStatus: 
+                    type: string
+                    enum:
+                      - canceled
+                      - canceledBillable
+        '412':
+          description: cannot cancel, order is already shipped
+        '401':
+          $ref: "#/components/responses/UnauthorizedError"
+    put:
+      summary: Change Shipping Address
+      description: Change the shipping address for the order specified
+      tags:
+        - order
+      parameters:
+        - name: integrationKey1
+          in: path
+          required: true
+          description: key sent in original request
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShippingAddress'
+      responses:
+        '200':
+          description: address updated successfully
+        '401':
+          $ref: "#/components/responses/UnauthorizedError"
+components:
+  securitySchemes:
+    ApiKeyAuthHeader:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+      description: Partner API key provided by Alexanders. Used in header to authorize.
+  schemas:
+    Order:
+      type: object
+      required:
+        - orderKey1
+      properties:
+        orderKey1:
+          type: string
+          maxLength: 500
+          description: Unique identifier for the order
+        orderKey2:
+          type: string
+          maxLength: 50
+        photobookItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhotobookItem'
+          description: Array of items of type photobook. At least one of photobookItems -or- items needs to be present.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+          description: Array of items (not photobooks). At least one of photobookItems -or- items needs to be present.
+        shipping:
+          $ref: '#/components/schemas/Shipping'
+        rushOrder:
+          type: integer
+          example: 0
+          description: 0 for false, 1 for true
+    PhotobookItem:
+      type: object
+      required:
+        - itemKey
+        - quantity
+        - sku
+      properties:
+        itemKey:
+          type: string
+          maxLength: 50
+          description: Unique (for this order) identifier indicating the item.
+        sku:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+          example: 1
+        coverUrl:
+          type: string
+          example: "http://file.to/cover.pdf"
+        gutsUrl:
+          type: string
+          example: "http://file.to/guts.pdf"
+    Item:
+      type: object
+      required:
+        - itemKey
+        - quantity
+        - sku
+        - fileUrl
+      properties:
+        itemKey:
+          type: string
+          maxLength: 50
+          description: Unique (for this order) identifier indicating the item.
+        sku:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+          example: 1
+        fileUrl:
+          type: string
+          example: "http://file.to/file.pdf"
+        foilUrl:
+          type: string
+          example: "http://file.to/foil.pdf"
+    Shipping:
+      type: object
+      required:
+        - shipMethod
+        - address
+      properties:
+        shipMethod:
+          type: string
+          description: Please contact your sales rep for valid ship methods.
+        address:
+          $ref: '#/components/schemas/ShippingAddress'
+    ShippingAddress:
+      type: object
+      required:
+        - name
+        - address1
+        - city
+        - state
+        - countryCode
+      properties: 
+        name:
+          type: string
+          example: "James Doe"
+          maxLength: 100
+        address1:
+          type: string
+          example: "245 S 1060 W"
+          maxLength: 100
+        address2:
+          type: string
+          maxLength: 100
+        city:
+          type: string
+          example: "Lindon"
+          maxLength: 50
+        state:
+          type: string
+          example: "UT"
+          maxLength: 50
+        postalCode:
+          type: string
+          example: "84042"
+          maxLength: 50
+        countryCode:
+          type: string
+          example: "USA"
+          maxLength: 50
+          description: "Recommended to use ISO Alpha-3. Validation will be done against a country list"
+        phoneNumber:
+          type: string
+          example: "(212) 555-1234"
+          maxLength: 50
+    ErrorResponse:
+      type: object
+      properties:
+        message: 
+          type: string
+  requestBodies:
+    Order:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Order'
+      description: Order object that is to be fulfilled
+  responses:
+    UnauthorizedError:
+      description: API key/partner is invalid

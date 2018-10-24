@@ -1,0 +1,126 @@
+openapi: 3.0.0
+info:
+  version: '1.0.0'
+  title: 'Order Status Update'
+  description: |
+    **Overview**
+    
+    Customer will need to implement this API specification in order to receive updates as orders are fulfilled. Please provide the finished endpoint(s) to APA for integration.
+    
+    Ideally customer will provide a development/sandbox version of this API as well that can be used during development without interrupting services for the customer.
+    
+    **Security**
+    
+    Transport security shall use TLS (HTTPS requests).  Securing access to the api will be handled by the api key being sent in the header.
+security:
+  - ApiKeyAuthHeader: []
+paths:
+  /printing/{orderKey1}:
+    put:
+      tags:
+        - Printing
+      summary: "Update printing status"
+      description: "Receive updated statuses for the specified order"
+      parameters:
+        - name: orderKey1
+          in: path
+          required: true
+          description: key sent in original request
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatusUpdate'
+      responses:
+        '200':
+          description: OK (success)
+        '404':
+          description: Not Found (order doesn't exist)
+  /shipped/{orderKey1}:
+    put:
+      tags:
+        - Shipped
+      summary: "Order Shipped"
+      description: "Shipments that was created for the order."
+      parameters:
+        - name: orderKey1
+          in: path
+          required: true
+          description: Order key sent in original request
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Shipment'
+      responses:
+        '200':
+          description: OK 
+        '404':
+          description: Not Found (order doesn't exist)
+  /error/{orderKey1}:
+    put:
+      tags:
+        - Error
+      parameters:
+        - name: orderKey1
+          in: path
+          required: true
+          description: key sent in original request
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      responses:
+        '200':
+          description: OK 
+        '404':
+          description: Not Found (order doesn't exist)
+components:
+  securitySchemes:
+    ApiKeyAuthHeader:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+      description: Partner API key provided by Alexanders. Used in header to authorize.
+  schemas:
+    StatusUpdate:
+      type: object
+      properties:
+        dueDate:
+          type: string
+          format: date-time
+    Shipment:
+      type: object
+      properties:
+        shipMethod:
+          type: string
+          example: "1st class ground"
+        carrier:
+          type: string
+          example: "UPS"
+        trackingNumber:
+          type: string
+        dateShipped:
+          type: string
+          format: date-time
+        cost:
+          type: number
+          description: This is in cents, so $11.50 = 1150
+          example: 1150
+    Error:
+      type: object
+      properties:
+        itemKey:
+          type: string
+          description: Unique item identifier (for the order), may not be set if error applies to the entire order
+        message:
+          type: string
+          description: Message
+          example: "Failed to download item"
